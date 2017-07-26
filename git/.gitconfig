@@ -1,9 +1,12 @@
 [user]
-email = jonas@jalling.dk
-name = Jonas B. Jalling
+    email = jonas@jalling.dk
+    name = Jonas B. Jalling
+
 [push]
-default = simple
+    default = simple
+
 [alias]
     conflicts = !git diff --name-only --diff-filter=U
+
 [pull]
-rebase = true
+    rebase = true
