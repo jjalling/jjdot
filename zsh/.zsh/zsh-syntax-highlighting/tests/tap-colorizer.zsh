@@ -1,3 +1,4 @@
+#!/usr/bin/env zsh
 # -------------------------------------------------------------------------------------------------
 # Copyright (c) 2015 zsh-syntax-highlighting contributors
 # All rights reserved.
@@ -27,18 +28,44 @@
 # vim: ft=zsh sw=2 ts=2 et
 # -------------------------------------------------------------------------------------------------
 
-if [[ $OSTYPE == msys ]]; then
-  skip_test='Cannot chmod +x in msys2'
-else
-  setopt PATH_DIRS
-  mkdir -p foo/bar
-  touch foo/bar/testing-issue-228
-  chmod  +x foo/bar/testing-issue-228
-  path+=( "$PWD"/foo )
+# This is a stdin-to-stdout filter that takes TAP output (such as 'make test')
+# on stdin and passes it, colorized, to stdout.
 
-  BUFFER='bar/testing-issue-228'
+emulate -LR zsh
 
-  expected_region_highlight=(
-    "1 21 command" # bar/testing-issue-228
-  )
+if [[ ! -t 1 ]] ; then
+  exec cat
 fi
+
+while read -r line;
+do
+  case $line in
+    # comment (filename header) or plan
+    (#* | <->..<->)
+      print -nP %F{blue}
+      ;;
+    # SKIP
+    (*# SKIP*)
+      print -nP %F{yellow}
+      ;;
+    # XPASS
+    (ok*# TODO*)
+      print -nP %F{red}
+      ;;
+    # XFAIL
+    (not ok*# TODO*)
+      print -nP %F{yellow}
+      ;;
+    # FAIL
+    (not ok*)
+      print -nP %F{red}
+      ;;
+    # PASS
+    (ok*)
+      print -nP %F{green}
+      ;;
+  esac
+  print -nr - "$line"
+  print -nP %f
+  echo "" # newline
+done

@@ -1,3 +1,4 @@
+#!/usr/bin/env zsh
 # -------------------------------------------------------------------------------------------------
 # Copyright (c) 2016 zsh-syntax-highlighting contributors
 # All rights reserved.
@@ -27,14 +28,72 @@
 # vim: ft=zsh sw=2 ts=2 et
 # -------------------------------------------------------------------------------------------------
 
-if [[ $OSTYPE == msys ]]; then
-  skip_test='Cannot create symlinks in msys2'
-else
-  ln -s /nonexistent broken-symlink
-  BUFFER=': broken-symlink'
-  CURSOR=5 # to make path_prefix ineligible
+emulate -LR zsh
+setopt localoptions extendedglob
 
-  expected_region_highlight=(
-    "3 16 path" # broken-symlink
-  )
+# Argument parsing.
+if (( $# != 3 )) || [[ $1 == -* ]]; then
+  print -r -- >&2 "$0: usage: $0 BUFFER HIGHLIGHTER BASENAME"
+  print -r -- >&2 ""
+  print -r -- >&2 "Generate highlighters/HIGHLIGHTER/test-data/BASENAME.zsh based on the"
+  print -r -- >&2 "current highlighting of BUFFER."
+  exit 1
 fi
+buffer=$1
+ZSH_HIGHLIGHT_HIGHLIGHTERS=( $2 )
+fname=${0:A:h:h}/highlighters/$2/test-data/${3%.zsh}.zsh
+
+# Load the main script.
+. ${0:A:h:h}/zsh-syntax-highlighting.zsh
+
+# Overwrite _zsh_highlight_add_highlight so we get the key itself instead of the style
+_zsh_highlight_add_highlight()
+{
+  region_highlight+=("$1 $2 $3")
+}
+
+
+# Copyright block
+year="`LC_ALL=C date +%Y`"
+if ! read -q "?Set copyright year to $year? "; then
+  year="YYYY"
+fi
+exec >$fname
+<$0 sed -n -e '1,/^$/p' | sed -e "s/2[0-9][0-9][0-9]/${year}/"
+# Assumes stdout is line-buffered
+git add -- $fname
+
+# Buffer
+print -n 'BUFFER='
+if [[ $buffer != (#s)[$'\t -~']#(#e) ]]; then
+  print -r -- ${(qqqq)buffer}
+else
+  print -r -- ${(qq)buffer}
+fi
+echo ""
+
+# Expectations
+print 'expected_region_highlight=('
+() {
+  local i
+  local PREBUFFER
+  local BUFFER
+  
+  PREBUFFER=""
+  BUFFER="$buffer"
+  region_highlight=()
+  # TODO: use run_test() from tests/test-highlighting.zsh (to get a tempdir)
+  _zsh_highlight
+
+  for ((i=1; i<=${#region_highlight}; i++)); do
+    local -a highlight_zone; highlight_zone=( ${(z)region_highlight[$i]} )
+    integer start=$highlight_zone[1] end=$highlight_zone[2]
+    if (( start < end )) # region_highlight ranges are half-open
+    then
+      (( --end )) # convert to closed range, like expected_region_highlight
+      (( ++start, ++end )) # region_highlight is 0-indexed; expected_region_highlight is 1-indexed
+    fi
+    printf "  %s # %s\n" ${(qq):-"$start $end $highlight_zone[3]"} ${${(qqqq)BUFFER[start,end]}[3,-2]}
+  done
+}
+print ')'
