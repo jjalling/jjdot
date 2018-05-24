@@ -2,29 +2,39 @@
 
 " Vim {{{
 set nocompatible
-set backup
-set backupdir=~/.vim/backup
-set directory=~/.vim/tmp
+set shell=/bin/sh
 set fileformats=unix,dos,mac
-set nocp
 " }}}
 
 " Vundle {{{
+if !filereadable($HOME . '/.vim/bundle/Vundle.vim/.git/config') && confirm("Clone Vundle?","Y\nn") == 1
+    exec '!git clone https://github.com/gmarik/Vundle.vim ~/.vim/bundle/Vundle.vim'
+endif
+
 set rtp+=~/.vim/bundle/Vundle.vim
 call vundle#begin()
+
 Plugin 'scrooloose/nerdtree'
 Plugin 'scrooloose/nerdcommenter'
 Bundle 'vim-scripts/Solarized'
-" }}}
+Plugin 'tpope/vim-fugitive'
+Plugin 'vim-airline/vim-airline'
+Plugin 'vim-airline/vim-airline-themes'
+Plugin 'airblade/vim-gitgutter'
+Plugin 'w0rp/ale'
 
+call vundle#end()
+filetype plugin indent on
+"}}}
+
+" Plugin config {{{
 let g:airline_theme = 'solarized'
 let g:airline#extensions#tabline#enabled = 1
-set laststatus=2
 
-set encoding=utf8
 set guifont=Meslo\ LG\ M\ DZ\ Regular\ for\ Powerline\ Nerd\ Font\ Complete\:h18
 let g:airline_powerline_fonts = 1
 let NERDTreeIgnore = ['\.o$', '\.pyc$']
+" }}}
 
 " Colors {{{
 set t_Co=256
@@ -33,30 +43,40 @@ let g:solarized_termtrans = 1
 set background=dark
 colorscheme solarized
 
-syntax enable
 " }}}
 
-" Whitespace {{{
-set tabstop=4
-set softtabstop=4
-set expandtab
-set backspace=indent,eol,start
-set shiftround
-set shiftwidth=4
-set formatoptions=tcqro
-set autoindent
-
+" Default encoding {{{
+set encoding=utf8 nobomb
+set fileencoding=utf8
 " }}}
 
 " UI {{{
-set number
+syntax on
+"set cursorline
+set number ruler
+set modeline
+set laststatus=2
 set showcmd
 set wildmenu
 
 set mouse=a     " lets try the mouse
 set noerrorbells
-set ruler
 set scrolloff=5
+" }}}
+
+" Line-wrap and tabs {{{
+set wrap
+set linebreak
+set expandtab
+set shiftround
+set shiftwidth=4
+set tabstop=4
+set softtabstop=4
+set formatoptions=tcqro
+set autoindent
+set copyindent
+set showmatch
+
 " }}}
 
 " Search {{{
@@ -68,27 +88,19 @@ set smarttab
   " }}}
 
 " Folding {{{
-set foldenable
+set nofoldenable
 set foldlevelstart=0
 nnoremap <space> za     " space opens/closes folds
 set foldmethod=syntax
 " }}}
 
-" Python checker {{{
-":command Sd SyntasticToggleMode
-let g:syntastic_mode_map = { 'mode': 'passive', 'active_filetypes':   [],'passive_filetypes': [] }
-noremap <C-w>e :SyntasticCheck<CR>
-noremap <C-w>f :SyntasticToggleMode<CR>
+" Vim stuff
+set backup
+set backupdir=~/.vim/backup
+set directory=~/.vim/tmp
+set backspace=indent,eol,start
+set whichwrap+=<,>,[,]
+set wildmenu
+set clipboard=unnamed
 
-"silent! nmap <F6> :SyntasticToggleMode<CR>
-execute pathogen#infect()
-set statusline+=%#warningmsg#
-set statusline+=%{SyntasticStatuslineFlag()}
-set statusline+=%*
-
-let g:syntastic_always_populate_loc_list = 1
-let g:syntastic_auto_loc_list = 1
-let g:syntastic_check_on_open = 1
-let g:syntastic_check_on_wq = 0
-let g:syntastic_python_flake8_args='--ignore=E501'
 " }}}
