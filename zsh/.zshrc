@@ -99,6 +99,7 @@ bindkey "\e[4~" end-of-line
 bindkey "\eOD" backward-word
 bindkey "\eOC" forward-word
 #bindkey "\e[3~" backward-delete-char
+bindkey "\e[3~" delete-char
 
 # ls *up* searches through commands matching ^ls
 autoload -U history-search-end
