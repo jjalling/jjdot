@@ -32,17 +32,17 @@ else
     SSH_PROMPT=""
 fi
 
-if [ -d "$HOME/git/zsh-git-prompt" ]; then
-    #GIT_PROMPT_EXECUTABLE=haskell
-    source "$HOME/git/zsh-git-prompt/zshrc.sh"
-    RPROMPT_GIT='$(git_super_status)'
-elif [ -d "$HOME/.osh-my-zsh" ]; then
-    export ZSH=~/.oh-my-zsh
-    plugins=(gitfast vi-mode)
-    source $ZSH/oh-my-zsh.sh
-    unalias -m '*'  # oh-my-zsh is nice, but I don't want your fucking aliases!
-    RPROMPT_GIT='$(git_prompt_info)'
-fi
+#if [ -d "$HOME/git/zsh-git-prompt" ]; then
+#    #GIT_PROMPT_EXECUTABLE=haskell
+#    source "$HOME/git/zsh-git-prompt/zshrc.sh"
+#    RPROMPT_GIT='$(git_super_status)'
+#elif [ -d "$HOME/.oh-my-zsh" ]; then
+#    export ZSH=~/.oh-my-zsh
+#    plugins=(gitfast vi-mode)
+#    source $ZSH/oh-my-zsh.sh
+#    unalias -m '*'  # oh-my-zsh is nice, but I don't want your fucking aliases!
+#    RPROMPT_GIT='$(git_prompt_info)'
+#fi
 
 ZSH_THEME_GIT_PROMPT_PREFIX="%{$fg[cyan]%}("
 ZSH_THEME_GIT_PROMPT_SUFFIX=") %{$fg[green]%}"
@@ -216,7 +216,6 @@ pak () {
 #  Development aliases  #
 #########################
 
-alias ee="emacs -nw"
 alias gits="git status"
 alias gita="git add"
 alias gitc="git commit"
@@ -243,9 +242,11 @@ clewn!() { clewn -va -R -ga "$*" }
 alias clip="xclip -selection clipboard"
 alias ssr="simplescreenrecorder"
 alias keys="key-mon --key-timeout=0.1 -t classic"
-#alias vim="nvim"
+alias vim="nvim"
 alias gdb="gdb --quiet"
 
+alias cal="cal -w -3"
+alias mls="tree -d -L 3 ~/Music | less"
 alias bzrs="bzr status"
 alias bzra="bzr add"
 alias bzrc="bzr commit"
@@ -255,6 +256,38 @@ bzrl() { bzr log "$@" | less }
 cdl(){ colordiff "$1" | less }
 
 hd(){ hexdump -C "$1" | less }
+
+# Work related
+pmount() {
+  parted -m $1 unit B print 2>/dev/null |head -$(expr $2 + 2) 
+  #|  cut -d':' -f$2
+fdisk -l $1 | grep $1$2
+}
+
+lgmake() {
+    docker run --privileged=true --rm -e BUILD -e IMAGE -v "$(git rev-parse --show-toplevel):/src" -w "/src/$(realpath --relative-base=$(git rev-parse --show-toplevel) .)" enxbuild2:v2 make $*
+}
+
+bake() {
+#docker run --rm -v "/home/jbj/devel/ambu:/src"            -v /etc/hosts:/etc/hosts -v /home/jbj/.ssh:/home/build/.ssh -v /home/jbj/.gitconfig:/home/build/.gitconfig -v /build:/build -w /src/base-yocto --net=host -ti yocto-builder:v2 /bin/bash
+#docker run --rm -v "/home/jbj/devel/ambu/base-yocto:/src" -v /etc/hosts:/etc/hosts -v /home/jbj/.ssh:/home/build/.ssh -v /home/jbj/.gitconfig:/home/build/.gitconfig -v /build:/build -w /src/yocto_build --net=host -ti yocto-builder:v2 /bin/bash
+#    docker run --rm -v "/home/jbj/devel/ambu:/src" -v /etc/hosts:/etc/hosts -v /build:/build -w /src/base-yocto/yocto_build --net=host -ti yocto-builder:v2 /bin/bash #-c "ls && source ../poky/oe-init-build-env . && bitbake amp"
+
+    docker run --rm \
+        -v "/home/jbj/devel/ambu:/src" \
+        -v /etc/hosts:/etc/hosts \
+        -v /home/jbj/.ssh:/home/build/.ssh \
+        -v /home/jbj/.gitconfig:/home/build/.gitconfig \
+        -v /build:/build \
+        -w /src/base-yocto \
+        --device=/dev/net/tun \
+        --net=host \
+        -ti yocto-builder:v2 /bin/bash
+}
+function coffee()
+{
+    echo "The coffee is $(curl -L https://api.thingspeak.com/channels/332399/fields/7/last -s) minutes old."
+}
 
 #####################
 #  todo.sh aliases  #
@@ -280,7 +313,7 @@ function sshfs_mount() {
     cd ~/media
     fusermount -uq "$1"
     mkdir -p "$1"
-    if ! sshfs "$2" "$1"; then
+    if ! sshfs -p 8089 "$2" "$1" -oauto_cache,reconnect,no_readahead; then
         cd "$OLD_PWD"
         OLDPWD="$OLD_OLDPWD"
     else
@@ -296,21 +329,18 @@ function sshfs_umount() {
         cd "$FULL_MOUNTDIR/.."
     fi
     fusermount -uq "$HOME/media/$1"
+    RETURNCODE=$?
+    if [[ $RETURNCODE -ne 0 ]]; then
+
+        echo "Couldn't unmount the directory"
+        return $RETURNCODE
+    fi
 }
 
-function carrot:()  { sshfs_mount  carrot: root@carrot:/ storage/emulated/0 }
-function carrot:u() { sshfs_umount carrot: }
-function turnip:()  { sshfs_mount  turnip: cmp@turnip:/ home/cmp }
-function turnip:u() { sshfs_umount turnip: }
-function beast:()   { sshfs_mount  beast:  cmp@beast:/  home/cmp }
-function beast:u()  { sshfs_umount beast: }
-function potato:()  { sshfs_mount  potato: cmp@potato:/ home/cmp }
-function potato:u() { sshfs_umount potato: }
-function allium:()  { sshfs_mount  allium: cmp@allium:/ }
-function allium:u() { sshfs_umount allium: }
-function moodle:()  { sshfs_mount  moodle: moodle:/ }
-function moodle:u() { sshfs_umount moodle: }
-
+function music:()  { sshfs_mount  music jonas@jalling.net:/mnt/smb_media/music }
+function music:u() { sshfs_umount music }
+function media:()  { sshfs_mount  media jonas@jalling.net:/mnt/smb_media }
+function media:u() { sshfs_umount media }
 
 ####################
 #  Frou-frou bits  #
@@ -333,3 +363,4 @@ precmd () {
 preexec() { print -Pnr $'\033'"]2;%~ [ $1 ]"$'\a' }
 
 source ~/.zshenv
+
